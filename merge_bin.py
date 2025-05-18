@@ -38,7 +38,7 @@ if not merge_args:
     exit(1)
 
 cmd = [
-    "esptool.py", "--chip", "esp32c3", "merge_bin", "-o", output_bin
+    "python3", "-m", "esptool", "--chip", "esp32c3", "merge_bin", "-o", output_bin
 ] + merge_args
 
 print("运行命令:")
