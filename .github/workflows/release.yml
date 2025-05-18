@@ -31,6 +31,7 @@ jobs:
 
       - name: Merge firmware
         run: python3 merge_bin.py
+        working-directory: ${{ github.workspace }}
 
       - name: Upload merged bin to Release
         uses: softprops/action-gh-release@v2
