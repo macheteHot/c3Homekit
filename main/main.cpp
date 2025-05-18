@@ -221,15 +221,15 @@ static void setup(void *p) {
 
   // HomeKit 配置
   hap_acc_cfg_t cfg;
-  cfg.name = "电脑启动器";
-  cfg.manufacturer = "虎哥科技";
-  cfg.model = "huge-002";
+  cfg.name = "ESP-Launcher";
+  cfg.manufacturer = "Espressif";
+  cfg.model = "Launcher01";
   cfg.serial_num = serial_num;
-  cfg.fw_rev = "89.64.0";
+  cfg.fw_rev = "1.0";
   cfg.hw_rev = NULL;
-  cfg.pv = "1.1.0"; // 固定值
+  cfg.pv = "1.1.0";
   cfg.identify_routine = launcher_identify;
-  cfg.cid = HAP_CID_SWITCH;
+  cfg.cid = HAP_CID_PROGRAMMABLE_SWITCH;
   hap_acc_t *accessory = hap_acc_create(&cfg);
 
   hap_acc_add_product_data(accessory, (uint8_t *)"ESP32HAP", 8);
@@ -243,14 +243,8 @@ static void setup(void *p) {
   hap_add_accessory(accessory);
 
   // 设置 HomeKit 配对码、Setup ID
-  char setup_code[9];
-  get_setup_code(setup_code);
-  // 格式化为 111-22-333 形式
-  char formatted_code[12];
-  snprintf(formatted_code, sizeof(formatted_code), "%.3s-%.2s-%.3s", setup_code,
-           setup_code + 3, setup_code + 5);
-  hap_set_setup_code(formatted_code);
-  hap_set_setup_id("7G9X"); // 固定值
+  hap_set_setup_code("111-22-333");
+  hap_set_setup_id("ES32");
 
   // 注册 HomeKit 事件回调
   esp_event_handler_register(HAP_EVENT, ESP_EVENT_ANY_ID,
