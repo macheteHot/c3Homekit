@@ -2,12 +2,8 @@ import os
 import subprocess
 import sys
 
-# 直接使用 GITHUB_WORKSPACE 环境变量，否则用当前工作目录下的 build 目录
-github_workspace = os.environ.get("GITHUB_WORKSPACE")
-if github_workspace:
-    buildDir = os.path.join(github_workspace, "build")
-else:
-    buildDir = os.path.join(os.getcwd(), "build")
+# 只用当前工作目录下的 build 目录，保证本地和 CI 路径一致
+buildDir = os.path.join(os.getcwd(), "build")
 output_bin = os.path.join(buildDir, "c3Homekit_merged.bin")
 
 nvs_bin = os.path.join(buildDir, "nvs.bin")
