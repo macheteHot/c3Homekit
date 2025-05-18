@@ -21,7 +21,7 @@ jobs:
           esp_idf_version: latest
           target: esp32c3
           path: .
-          command: idf.py build partition_table flash
+          command: idf.py build
 
       - name: List build directory
         run: ls -la build
