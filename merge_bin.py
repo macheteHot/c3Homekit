@@ -1,7 +1,13 @@
 import os
 import subprocess
+import sys
 
-buildDir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build")
+# 直接使用 GITHUB_WORKSPACE 环境变量，否则用当前工作目录下的 build 目录
+github_workspace = os.environ.get("GITHUB_WORKSPACE")
+if github_workspace:
+    buildDir = os.path.join(github_workspace, "build")
+else:
+    buildDir = os.path.join(os.getcwd(), "build")
 output_bin = os.path.join(buildDir, "c3Homekit_merged.bin")
 
 nvs_bin = os.path.join(buildDir, "nvs.bin")
@@ -36,6 +42,19 @@ for addr, binfile in parts:
 if not merge_args:
     print("未找到任何可合并的 bin 文件，退出。")
     exit(1)
+
+# 检查关键 bin 文件是否存在且非空
+critical_bins = [
+    ("bootloader", bootloader_bin),
+    ("partition-table", partition_table_bin),
+    ("app", app_bin),
+]
+for name, path in critical_bins:
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        print(f"[错误] 关键 bin 文件缺失或为空: {path} ({name})，请检查构建输出。")
+        sys.exit(1)
+    else:
+        print(f"[信息] {name} 文件存在，大小: {os.path.getsize(path)} 字节")
 
 cmd = [
     "python3", "-m", "esptool", "--chip", "esp32c3", "merge_bin", "-o", output_bin
