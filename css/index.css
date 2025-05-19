@@ -10,6 +10,7 @@
   box-sizing: border-box;
   margin: 0;
   border-radius: 0;
+  user-select: none;
 }
 
 html,
@@ -24,23 +25,31 @@ body {
   background: var(--gary);
   margin: 0;
   padding: 0;
+  overflow: auto;
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  justify-content: space-around
 }
 
 .container {
-  padding: 18px 20px;
-  background: var(--gary);
+  width: 480px;
+  flex-shrink: 0;
+  margin: 20px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.04);
+  padding: 32px 36px 28px 36px;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 40px);
 }
+
 
 h2 {
   text-align: center;
   color: var(--primary);
-  margin-bottom: 24px;
-  font-size: 4rem;
+  margin-bottom: 32px;
+  font-size: 2.3rem;
+  font-weight: 700;
 }
 
 label {
@@ -53,28 +62,29 @@ label {
 input[type="text"],
 input[type="password"] {
   width: 100%;
-  padding: 10px 12px;
-  margin-top: 4px;
-  margin-bottom: 16px;
+  padding: 4px 8px;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 16px;
   box-sizing: border-box;
   transition: border 0.2s;
   height: 40px;
+  background: #fafbfc;
+  border: 1.5px solid #e0e0e0;
 }
 
 
 button {
   width: 100%;
-  padding: 12px 0;
+  padding: 14px 0;
   background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
 }
 
 button:disabled {
@@ -84,9 +94,7 @@ button:disabled {
 
 
 #provisionBtn {
-  height: 42px;
-  width: 200px;
-  margin-top: 1px;
+  height: 46px;
 }
 
 #provisionBtn div {
@@ -96,37 +104,46 @@ button:disabled {
   height: 100%;
 }
 
-#log {
+.log {
   background: #222;
   color: var(--log-text);
   /* 等宽字体 */
   font-family: monospace;
-  font-size: 14px;
+  font-size: 15px;
   border-radius: 8px;
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
-  height: 0;
-  margin-top: 10px;
+  min-height: 80px;
+  margin-top: 18px;
   white-space: pre-wrap;
   flex: 1;
+  user-select: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-#log>* {
-  margin-bottom: 8px;
+.log * {
+  user-select: all;
 }
+
 
 .tip {
   color: #888;
-  font-size: 0.95rem;
-  margin-bottom: 18px;
   text-align: center;
+  margin-top: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
 }
 
 .form-row {
   display: flex;
-  gap: 18px;
-  align-items: center;
-  margin-top: 32px;
+  gap: 24px;
+  align-items: flex-end;
 }
 
 
@@ -134,12 +151,17 @@ button:disabled {
 
 .form-control {
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  height: 90px;
 }
 
 .form-control input {
   outline: 2px solid #ccc;
   border: 0;
+}
+
+.form-tip {
+  margin-top: 4px;
 }
 
 .form-control .form-tip {
@@ -200,55 +222,40 @@ button:disabled {
   margin: 20px 0;
 }
 
+
+.pc-qr-code {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pc-qr-code div {
+  color: var(--primary);
+  font-size: 25px;
+}
+
+
+
 /* 媒体查询：600px 以下屏幕 */
 @media (max-width: 600px) {
+  body {
+    overflow: hidden;
+  }
+
   .container {
-    padding: 8px 2vw;
-  }
-
-  h2 {
-    font-size: 1.2rem;
-    margin-bottom: 14px;
-  }
-
-  .form {
-    margin-top: 8px;
-  }
-
-  .form-row {
-    display: contents;
-    flex-direction: unset;
-    gap: 0;
-    margin-top: 8px;
-    margin-bottom: 6px;
-  }
-
-  .form-control {
-    font-size: 0.98rem;
-  }
-
-  .form-control label {
-    margin-bottom: 0;
-  }
-
-  input[type="text"],
-  input[type="password"] {
-    font-size: 1rem;
-    padding: 8px 8px;
-    height: 36px;
-    margin-bottom: 10px;
-  }
-
-  #provisionBtn {
     width: 100%;
-    max-width: none;
-    height: 38px;
-    margin-top: 8px;
+    margin: 0 !important;
+    padding: 20px;
+    box-shadow: none;
+    border-radius: 0;
+    height: auto;
   }
 
-  #log {
-    font-size: 12px;
-    padding: 8px;
-    border-radius: 6px;
+  .pc-qr-code,
+  .flash-tool {
+    display: none;
   }
+
 }

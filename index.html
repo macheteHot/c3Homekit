@@ -12,37 +12,46 @@
 </head>
 
 <body>
+  <div class="container flash-tool">
+    <h2>设备刷写器</h2>
+    <button id="flashDevice">固件设备</button>
+    <div class="tip">只支持 esp32c3 4M</div>
+    <div class="log flash-log"></div>
+  </div>
   <div class="container">
     <h2>电脑启动器配网工具</h2>
-    <div class="tip">请确保设备处于配网状态，蓝牙广播已开启</div>
-    <button id="connectBtn">连接设备</button>
-    <form id="mainForm" class="form">
-      <div class="form-row" style="margin-bottom: 0;">
+    <button id="connectBtn">蓝牙连接设备</button>
+    <form id="mainForm" class="form" autocomplete="off">
+      <div class="form-row">
         <div class="form-control">
           <label for="ssid">WiFi SSID</label>
-          <input id="ssid" type="text" required autocomplete="off" />
+          <input name="ssid" id="ssid" type="text" placeholder="wifi 名称" required autocomplete="off" />
           <div class="form-tip"></div>
         </div>
         <div class="form-control">
           <label for="password">WiFi 密码</label>
-          <input id="password" type="password" required autocomplete="off" />
+          <input id="password" name="wifi_password" placeholder="WiFi 密码" type="password" required autocomplete="off" />
           <div class="form-tip"></div>
         </div>
       </div>
-      <div class="form-row" style="margin-bottom: 18px;">
+      <div class="form-row">
         <div class="form-control">
           <label for="targetMAC">电脑MAC地址</label>
-          <input id="targetMAC" type="text" required autocomplete="off"
-            pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$" />
+          <input id="targetMAC" type="text" required autocomplete="new-password"
+            placeholder="AA:BB:CC:DD:EE:FF 或者 AA-BB-CC-DD-EE-FF" />
           <div class="form-tip"></div>
         </div>
-        <button id="provisionBtn" disabled>
+      </div>
+      <div class="form-row">
+        <button id="provisionBtn">
           <div>发送配网</div>
         </button>
       </div>
     </form>
-    <div id="log"> </div>
+    <div class="log provision-log"> </div>
   </div>
+  <div class="container pc-qr-code"></div>
   <script src="./index.js"></script>
+  <script type="module" src="./flash.js"></script>
 
 </html>

@@ -3,17 +3,14 @@ const dom_provisionBtn = document.getElementById("provisionBtn");
 const dom_ssidInput = document.getElementById("ssid");
 const dom_passwordInput = document.getElementById("password");
 const dom_targetMAC = document.getElementById("targetMAC");
-const dom_log = document.getElementById("log");
+const dom_provision_log = document.querySelector(".provision-log");
+const dom_pc_qr_code = document.querySelector(".pc-qr-code");
 const dom_mainForm = document.getElementById("mainForm");
-
+const { matches: isPhone } = window.matchMedia("(max-width: 600px)");
+// const { ESPLoader } = window.esptooljs;
 // ESP32 BLE 配网核心逻辑
 const SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4".toLocaleLowerCase();
 const namePrefix = "PROV".toUpperCase();
-// X-HM:// 008YCYEP 3QYT
-//   ▲        ▲      ▲
-//   │        │      └─── Setup ID
-//   │        └── Combination of Parameters (first 9 characters)
-//   └─ Starting Content
 
 /**
  * 从 targetMAC 的返回中获取所有按顺序的参数
@@ -26,25 +23,37 @@ const composeSetupUriParamsObj = {
   version: 0,
 };
 const composeSetupUri = ({ categoryId, flag, password, setupId }) => {
+  // X-HM:// 008YCYEP 3QYT
+  //   ▲        ▲      ▲
+  //   │        │      └─── Setup ID
+  //   │        └── Combination of Parameters (first 9 characters)
+  //   └─ Starting Content
   let payload = 0;
   payload = payload | (0 & 0x7);
-
   payload = payload << 4;
   payload = payload | (0 & 0xf);
-
   payload = payload << 8;
   payload = payload | (categoryId & 0xff);
-
   payload = payload << 4;
   payload = payload | (0x02 & 0xf);
-
   payload = BigInt(payload) << BigInt(27);
   payload = BigInt(payload) | BigInt(Number(password) & 0x7fffffff);
-
   const payloadBase36 = payload.toString(36).toUpperCase().padStart(9, "0");
-
   return `X-HM://${payloadBase36}${setupId}`;
 };
+
+function log(msg) {
+  if (!msg) return;
+  if (typeof msg === "string") {
+    const msgDiv = document.createElement("div");
+    msgDiv.textContent = msg;
+    dom_provision_log.appendChild(msgDiv);
+  }
+  if (msg instanceof HTMLElement) {
+    dom_provision_log.appendChild(msg);
+  }
+  dom_provision_log.scrollTop = dom_provision_log.scrollHeight;
+}
 
 const composeQrCode = ({ pairingCode, setupUri }) => {
   // 生成二维码到离屏div
@@ -97,8 +106,17 @@ const composeQrCode = ({ pairingCode, setupUri }) => {
     const dom_qrContainer = document.createElement("div");
     dom_qrContainer.className = "qr-container";
     dom_qrContainer.innerHTML = svgNode;
-    dom_log.appendChild(dom_qrContainer);
-    log("请使用Home App 扫描二维码添加");
+    if (isPhone) {
+      log(dom_qrContainer);
+      log("请使用Home App 扫描二维码添加");
+    } else {
+      const divDom = document.createElement("div");
+      divDom.appendChild(
+        document.createTextNode("请使用Home App 扫描二维码添加")
+      );
+      dom_pc_qr_code.appendChild(divDom);
+      dom_pc_qr_code.appendChild(dom_qrContainer);
+    }
   });
 };
 
@@ -116,16 +134,9 @@ async function ensureConnected() {
   }
 }
 
-function log(msg) {
-  const msgDiv = document.createElement("div");
-  msgDiv.textContent = msg;
-  dom_log.appendChild(msgDiv);
-  // 自动滚动到底部
-  dom_log.scrollTop = dom_log.scrollHeight;
-}
-
 async function scanAndConnect() {
-  dom_log.textContent = "";
+  debugger;
+  dom_provision_log.textContent = "";
   log("请求蓝牙设备...");
   device = await navigator.bluetooth.requestDevice({
     filters: [{ namePrefix: namePrefix }],
@@ -168,7 +179,6 @@ async function scanAndConnect() {
     return;
   }
   log("已连接，特征值就绪");
-
   dom_provisionBtn.disabled = false;
 }
 
