@@ -21,7 +21,7 @@ jobs:
       - name: ESP-IDF build (espressif/esp-idf-ci-action)
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: latest
+          esp_idf_version: v5.4.1
           target: esp32c3
           path: .
           command: pwd && idf.py build && python3 merge_bin.py
