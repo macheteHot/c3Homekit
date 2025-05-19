@@ -2,8 +2,10 @@
 #include "esp_wifi.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
+#include <atomic>
 #include <cstring>
 #include <iostream>
+#include <sys/time.h>
 extern "C" {
 #include "app_wifi.h"
 #include "driver/gpio.h"
@@ -29,7 +31,15 @@ extern "C" {
 #define LAUNCHER_TASK_STACKSIZE 4 * 1024
 #define LAUNCHER_TASK_PRIORITY 1
 
-static const char *TAG = "HAP Launcher";
+static std::atomic<uint64_t> last_heartbeat_time_ms{0};
+static std::atomic<bool> pc_online{false};
+
+// 获取当前时间戳（毫秒）
+static uint64_t get_time_ms() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
 
 // LED 闪烁函数
 static void blink_led(int times) {
@@ -52,6 +62,14 @@ static int launcher_identify(hap_acc_t *ha) {
 // Switch状态变量
 static bool switch_on = false;
 static hap_char_t *switch_on_char = NULL;
+
+// 全局保存NVS targetMAC
+static uint8_t g_target_mac[6] = {0};
+static bool g_target_mac_valid = false;
+
+// WOL后等待心跳保护期（单位ms）
+#define WOL_WAIT_HEARTBEAT_MS 30000
+static uint64_t wol_sent_time_ms = 0;
 
 // 发送WOL魔术包
 static void send_wol_from_nvs(void *arg) {
@@ -96,6 +114,27 @@ static void send_wol_from_nvs(void *arg) {
   }
 }
 
+// 发送关机指令
+static void send_shutdown_cmd_from_nvs(void) {
+  if (!g_target_mac_valid)
+    return;
+  char msg[64];
+  snprintf(msg, sizeof(msg), "SHUTDOWN_ESP|%02X%02X%02X%02X%02X%02X",
+           g_target_mac[0], g_target_mac[1], g_target_mac[2], g_target_mac[3],
+           g_target_mac[4], g_target_mac[5]);
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0)
+    return;
+  int broadcast = 1;
+  setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+  struct sockaddr_in addr = {0};
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(40000);
+  addr.sin_addr.s_addr = inet_addr("255.255.255.255");
+  sendto(sock, msg, strlen(msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+  close(sock);
+}
+
 // Switch写回调
 static int launcher_switch_write(hap_write_data_t write_data[], int count,
                                  void *serv_priv, void *write_priv) {
@@ -107,13 +146,11 @@ static int launcher_switch_write(hap_write_data_t write_data[], int count,
       if (new_state) {
         send_wol_from_nvs(NULL);
         printf("Switch ON: trigger action (WOL)\n");
-        // 1秒后自动复位为关
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        switch_on = false;
-        hap_val_t val = {.b = false};
-        hap_char_update_val(switch_on_char, &val);
+        wol_sent_time_ms = get_time_ms(); // 记录WOL发送时间
+      } else {
+        send_shutdown_cmd_from_nvs();
+        printf("Switch OFF: trigger shutdown command\n");
       }
-      switch_on = new_state;
       *(write->status) = HAP_STATUS_SUCCESS;
     } else {
       *(write->status) = HAP_STATUS_RES_ABSENT;
@@ -154,11 +191,57 @@ volatile bool g_short_press_event = false;
 volatile bool g_long_press_event = false;
 
 // 按钮短按回调
-static void button_short_press_cb(void *arg) { g_short_press_event = true; }
+static void button_short_press_cb(void *arg) {
+  static uint64_t last_tap_time = 0;
+  static int tap_count = 0;
+  uint64_t now = get_time_ms();
+  const uint64_t DOUBLE_TAP_INTERVAL = 500; // ms
+  if (now - last_tap_time < DOUBLE_TAP_INTERVAL) {
+    tap_count++;
+  } else {
+    tap_count = 1;
+  }
+  last_tap_time = now;
+  if (tap_count == 2) {
+    // 检测到双击
+    send_shutdown_cmd_from_nvs();
+    tap_count = 0;
+  } else {
+    // 单击逻辑
+    g_short_press_event = true;
+  }
+}
 // 按钮长按回调
 static void button_long_press_cb(void *arg) { g_long_press_event = true; }
+// 按钮双击回调
+static void button_double_press_cb(void *arg) { send_shutdown_cmd_from_nvs(); }
 
 void loop() {
+  static bool last_pc_online = false;
+  uint64_t now = get_time_ms();
+  bool online = false;
+  // 判断是否处于WOL保护期
+  bool in_wol_wait = (wol_sent_time_ms > 0) &&
+                     (now - wol_sent_time_ms < WOL_WAIT_HEARTBEAT_MS);
+  if (last_heartbeat_time_ms > 0 && now - last_heartbeat_time_ms < 2000) {
+    online = true;
+  } else if (in_wol_wait) {
+    online = true; // 保护期内强制保持开
+  }
+  // 如果收到心跳，退出保护期
+  if (last_heartbeat_time_ms > 0 && now - last_heartbeat_time_ms < 2000 &&
+      in_wol_wait) {
+    wol_sent_time_ms = 0;
+  }
+  // 状态变化时同步HomeKit开关
+  if (online != last_pc_online) {
+    last_pc_online = online;
+    if (switch_on_char) {
+      hap_val_t val = {.b = online};
+      hap_char_update_val(switch_on_char, &val);
+    }
+  }
+  // ...原有按钮事件处理...
   if (g_short_press_event) {
     g_short_press_event = false;
     send_wol_from_nvs(NULL);
@@ -170,6 +253,52 @@ void loop() {
     esp_restart();
   }
   vTaskDelay(100 / portTICK_PERIOD_MS);
+}
+
+// UDP 监听任务，监听40000端口，收到HEARTBEAT|MAC包时刷新心跳
+static void udp_heartbeat_task(void *arg) {
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) {
+    vTaskDelete(NULL);
+    return;
+  }
+  struct sockaddr_in addr = {0};
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(40000);
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    close(sock);
+    vTaskDelete(NULL);
+    return;
+  }
+  char buf[128];
+  while (1) {
+    struct sockaddr_in src_addr;
+    socklen_t addrlen = sizeof(src_addr);
+    int len = recvfrom(sock, buf, sizeof(buf) - 1, 0,
+                       (struct sockaddr *)&src_addr, &addrlen);
+    if (len > 0) {
+      buf[len] = '\0';
+      // 查找HEARTBEAT|前缀
+      if (strncmp(buf, "HEARTBEAT|", 10) == 0 && g_target_mac_valid) {
+        // 取出心跳包中的MAC字符串
+        const char *mac_str = buf + 10;
+        // 格式化NVS MAC为大写无冒号字符串
+        char nvs_mac_str[13];
+        snprintf(nvs_mac_str, sizeof(nvs_mac_str), "%02X%02X%02X%02X%02X%02X",
+                 g_target_mac[0], g_target_mac[1], g_target_mac[2],
+                 g_target_mac[3], g_target_mac[4], g_target_mac[5]);
+        // 比较
+        if (strncasecmp(mac_str, nvs_mac_str, 12) == 0) {
+          last_heartbeat_time_ms = get_time_ms();
+          pc_online = true;
+        }
+      }
+    }
+  }
+  // never reached
+  close(sock);
+  vTaskDelete(NULL);
 }
 
 static void setup(void *p) {
@@ -184,6 +313,18 @@ static void setup(void *p) {
   }
   ESP_ERROR_CHECK(ret);
 
+  // 读取NVS targetMAC到全局变量
+  nvs_handle_t nvs_handle;
+  size_t mac_len = 6;
+  esp_err_t err = nvs_open("prov", NVS_READONLY, &nvs_handle);
+  if (err == ESP_OK) {
+    err = nvs_get_blob(nvs_handle, "targetMAC", g_target_mac, &mac_len);
+    nvs_close(nvs_handle);
+    if (err == ESP_OK && mac_len == 6) {
+      g_target_mac_valid = true;
+    }
+  }
+
   // 初始化 LED GPIO
   gpio_reset_pin((gpio_num_t)LED_GPIO);
   gpio_set_direction((gpio_num_t)LED_GPIO, GPIO_MODE_OUTPUT);
@@ -192,7 +333,7 @@ static void setup(void *p) {
   // 初始化实体按钮
   static CButton button((gpio_num_t)BUTTON_GPIO, BUTTON_ACTIVE_LOW);
   button.set_evt_cb(BUTTON_CB_TAP, button_short_press_cb,
-                    NULL);                               // 只在短按时触发
+                    NULL);                               // 短按/双击检测
   button.add_on_press_cb(3, button_long_press_cb, NULL); // 长按3秒
 
   // 初始化 Wi-Fi
@@ -257,6 +398,9 @@ static void setup(void *p) {
 
   // 启动 HomeKit core
   hap_start();
+
+  // 启动UDP心跳监听任务
+  xTaskCreate(udp_heartbeat_task, "udp_heartbeat", 2 * 1024, NULL, 5, NULL);
 
   // 等待 Wi-Fi 连接（阻塞直到连接）
   app_wifi_start(portMAX_DELAY);
