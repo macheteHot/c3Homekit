@@ -110,6 +110,7 @@ const composeQrCode = ({ pairingCode, setupUri }) => {
       log(dom_qrContainer);
       log("请使用Home App 扫描二维码添加");
     } else {
+      log("请到右侧扫描二维码添加设备到 Home App");
       const divDom = document.createElement("div");
       divDom.appendChild(
         document.createTextNode("请使用Home App 扫描二维码添加")

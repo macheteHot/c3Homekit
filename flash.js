@@ -125,6 +125,9 @@ const onFlashClick = async (e) => {
           },
         });
         log("刷写成功");
+        await espLoader.flashFinish(true);
+        log("设备刷写完成正在重启... 请到右侧配网工具进行配网");
+    
       } catch (error) {
         console.error(error);
         log("刷写失败: " + error.message);
