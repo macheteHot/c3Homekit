@@ -87,10 +87,20 @@ button {
   box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
 }
 
+.firmware {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  gap: 16px;
+}
+
+
 button:disabled {
   background: #b0b0b0;
   cursor: not-allowed;
 }
+
 
 
 #provisionBtn {

@@ -1,5 +1,5 @@
 const dom_connect_btn = document.getElementById("connectBtn");
-const dom_provisionBtn = document.getElementById("provisionBtn");
+const dom_provision_btn = document.getElementById("provisionBtn");
 const dom_ssidInput = document.getElementById("ssid");
 const dom_passwordInput = document.getElementById("password");
 const dom_targetMAC = document.getElementById("targetMAC");
@@ -179,7 +179,7 @@ async function scanAndConnect() {
     return;
   }
   log("已连接，特征值就绪");
-  dom_provisionBtn.disabled = false;
+  dom_provision_btn.disabled = false;
 }
 
 async function sendProvision() {

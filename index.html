@@ -14,8 +14,16 @@
 <body>
   <div class="container flash-tool">
     <h2>设备刷写器</h2>
-    <button id="flashDevice">固件设备</button>
+    <button id="connectDevice">连接设备</button>
     <div class="tip">只支持 esp32c3 4M</div>
+    <div class="firmware">
+      <button class="download-firmware">
+        <div>没有固件点我下载</div>
+      </button>
+      <button class="flash-firmware" disabled>
+        <div>固件刷写</div>
+      </button>
+    </div>
     <div class="log flash-log"></div>
   </div>
   <div class="container">
@@ -43,7 +51,7 @@
         </div>
       </div>
       <div class="form-row">
-        <button id="provisionBtn">
+        <button id="provisionBtn" disabled>
           <div>发送配网</div>
         </button>
       </div>
