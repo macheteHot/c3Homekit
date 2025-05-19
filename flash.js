@@ -55,12 +55,17 @@ const downloadClick = async (e) => {
   log("正在从 GitHub 获取固件地址...");
   const projectURL =
     "https://api.github.com/repos/MacheteHot/c3Homekit/releases/latest";
-  const response = await fetch(projectURL);
-  const data = await response.json();
-  const firmwareURL = data.assets[0].browser_download_url;
-  log("下载后请点击上传按钮进行刷写");
-  // 此处直接下载文件
-  window.open(firmwareURL, "_blank");
+  try {
+    const response = await fetch(projectURL);
+    const data = await response.json();
+    const firmwareURL = data.assets[0].browser_download_url;
+    log("下载后请点击上传按钮进行刷写");
+    // 此处直接下载文件
+    window.open(firmwareURL, "_blank");
+  } catch (error) {
+    log("获取固件地址失败 请手动下载固件");
+    window.open("https://github.com/macheteHot/c3Homekit/releases/latest");
+  }
 };
 
 const onButtonClick = async (e) => {
@@ -127,7 +132,6 @@ const onFlashClick = async (e) => {
         log("刷写成功");
         await espLoader.flashFinish(true);
         log("设备刷写完成正在重启... 请到右侧配网工具进行配网");
-    
       } catch (error) {
         console.error(error);
         log("刷写失败: " + error.message);
