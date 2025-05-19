@@ -66,6 +66,10 @@
 
 ---
 
+如需更详细的使用说明或遇到问题，欢迎提交 Issue 或 PR！
+
+---
+
 ## 🙏 参考/鸣谢
 
 - [HomeKit-ESP32](https://github.com/espressif/esp-homekit-sdk)
@@ -73,4 +77,6 @@
 
 ---
 
-如需更详细的使用说明或遇到问题，欢迎提交 Issue 或 PR！
+## ©️ License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
